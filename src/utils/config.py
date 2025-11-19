@@ -22,6 +22,7 @@ class Config:
     # MVK SDK Configuration
     MVK_API_KEY: str = os.getenv("MVK_API_KEY", "")
     MVK_AGENT_ID: str = os.getenv("MVK_AGENT_ID", "mavvrik-sdk-assistant")
+    MVK_AGENT_NAME: str = os.getenv("MVK_AGENT_NAME", "mvk-sdk-agent")
     MVK_TENANT_ID: str = os.getenv("MVK_TENANT_ID", "mavvrik-internal")
 
     # ChromaDB Configuration

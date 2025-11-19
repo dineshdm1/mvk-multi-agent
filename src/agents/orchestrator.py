@@ -18,12 +18,14 @@ class ChatOrchestrator:
     def __init__(self):
         """Initialize Chat Orchestrator and MVK SDK instrumentation."""
         # Initialize MVK SDK once for entire application
+        # agent_id, api_key, tenant_id automatically read from environment:
+        # - MVK_AGENT_ID
+        # - MVK_API_KEY
+        # - MVK_TENANT_ID
         mvk.instrument(
-            agent_id=config.MVK_AGENT_ID,
-            api_key=config.MVK_API_KEY,
-            enable_batching=True,
-            batch_size=10,
-            flush_interval_seconds=5
+            # Auto-track LLM + VectorDB
+            wrappers={"include": ["genai", "vectordb"]},
+            batching={"max_interval_ms": 60000},
         )
 
         self.llm = ChatOpenAI(
@@ -44,37 +46,38 @@ class ChatOrchestrator:
         Returns:
             Dictionary with answer and metadata
         """
-        # Identify this agent
-        with mvk.context(agent_name="orchestrator"):
-            try:
-                # Stage 1: Intent classification
-                with mvk.context(name="stage.intent_classification"):
-                    intent = self._classify_intent(query)
+        try:
+            # Stage 1: Intent classification
+            with mvk.context(name="stage.intent_classification"):
+                intent = self._classify_intent(query)
+                # LLM call auto-tracked, nested under this stage
 
-                # Stage 2: Agent routing
-                with mvk.context(name="stage.agent_routing"):
-                    agent_responses = self._route_to_agents(query, intent)
+            # Stage 2: Agent routing
+            with mvk.context(name="stage.agent_routing"):
+                agent_responses = self._route_to_agents(query, intent)
+                # Sub-agent calls nested under this stage
 
-                # Stage 3: Response synthesis
-                with mvk.context(name="stage.response_synthesis"):
-                    final_response = self._synthesize_response(query, agent_responses, intent)
+            # Stage 3: Response synthesis
+            with mvk.context(name="stage.response_synthesis"):
+                final_response = self._synthesize_response(
+                    query, agent_responses, intent)
 
-                return {
-                    "answer": final_response,
-                    "intent": intent,
-                    "agent_responses": agent_responses,
-                    "success": True
-                }
+            return {
+                "answer": final_response,
+                "intent": intent,
+                "agent_responses": agent_responses,
+                "success": True
+            }
 
-            except Exception as e:
-                print(f"❌ Orchestrator error: {e}")
+        except Exception as e:
+            print(f"❌ Orchestrator error: {e}")
 
-                return {
-                    "answer": f"❌ An error occurred: {str(e)}\n\nPlease try rephrasing your question.",
-                    "intent": {},
-                    "agent_responses": {},
-                    "success": False
-                }
+            return {
+                "answer": f"❌ An error occurred: {str(e)}\n\nPlease try rephrasing your question.",
+                "intent": {},
+                "agent_responses": {},
+                "success": False
+            }
 
     def _classify_intent(self, query: str) -> Dict[str, any]:
         """
@@ -100,16 +103,19 @@ class ChatOrchestrator:
 
             # Remove markdown code blocks if present
             if "```json" in intent_json:
-                intent_json = intent_json.split("```json")[1].split("```")[0].strip()
+                intent_json = intent_json.split(
+                    "```json")[1].split("```")[0].strip()
             elif "```" in intent_json:
-                intent_json = intent_json.split("```")[1].split("```")[0].strip()
+                intent_json = intent_json.split(
+                    "```")[1].split("```")[0].strip()
 
             intent = json.loads(intent_json)
 
             return intent
 
         except Exception as e:
-            print(f"⚠️  Intent classification error: {e}, defaulting to SDK query")
+            print(
+                f"⚠️  Intent classification error: {e}, defaulting to SDK query")
             # Default to SDK query if classification fails
             return {
                 "needs_sdk": True,
@@ -133,14 +139,12 @@ class ChatOrchestrator:
 
         # Query SDK Agent if needed
         if intent.get("needs_sdk", False):
-            # Agent is already instrumented with @mvk.signal()
             sdk_response = sdk_agent.query(query)
             responses["sdk"] = sdk_response
 
         # Query Framework Specialist if needed
         if intent.get("needs_framework", False):
             framework_name = intent.get("framework_name")
-            # Agent is already instrumented with @mvk.signal()
             framework_response = framework_router.query(query, framework_name)
             responses["framework"] = framework_response
 
@@ -148,9 +152,9 @@ class ChatOrchestrator:
         if intent.get("needs_code", False):
             # Prepare context from previous agents
             sdk_context = responses.get("sdk", {}).get("answer", "")
-            framework_context = responses.get("framework", {}).get("answer", "")
+            framework_context = responses.get(
+                "framework", {}).get("answer", "")
 
-            # Agent is already instrumented with @mvk.signal()
             code_response = code_generator.generate(
                 user_query=query,
                 sdk_context=sdk_context if sdk_context else None,

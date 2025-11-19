@@ -12,6 +12,10 @@ RUN apt-get update && apt-get install -y \
 # Copy requirements first for better caching
 COPY requirements.txt .
 
+# Copy and install MVK SDK wheel
+COPY sdk/mvk_sdk_py-1.2.0-py3-none-any.whl ./sdk/
+RUN pip install --no-cache-dir ./sdk/mvk_sdk_py-1.2.0-py3-none-any.whl
+
 # Install Python dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 

@@ -1,10 +1,11 @@
 """Session management for Chainlit UI."""
 
+import uuid
 from typing import Optional, Dict, Any
 from dataclasses import dataclass, field
 from datetime import datetime
-
-from .mvk_tracker import tracker
+import mvk_sdk as mvk
+from mvk_sdk import Metric
 
 
 @dataclass
@@ -62,7 +63,7 @@ class SessionManager:
         Returns:
             UserSession instance
         """
-        session_id = tracker.create_session_id()
+        session_id = f"session_{uuid.uuid4().hex[:16]}"
 
         session = UserSession(
             user_id=user_id,
@@ -89,11 +90,13 @@ class SessionManager:
         Returns:
             True if authenticated
         """
+        import secrets
+        
         session = self.get_session(session_id)
         if not session:
             return False
 
-        if password == correct_password:
+        if secrets.compare_digest(password, correct_password):
             session.authenticated = True
             return True
 
@@ -147,7 +150,13 @@ class SessionManager:
                 break
 
         # Track feedback in MVK
-        tracker.track_feedback(feedback)
+        mvk.add_metered_usage(
+            Metric(
+                metric_kind="user.feedback",
+                quantity=1 if feedback == "helpful" else 0,
+                uom="feedback"
+            )
+        )
 
     def get_conversation_context(self, session_id: str, n: int = 5) -> str:
         """

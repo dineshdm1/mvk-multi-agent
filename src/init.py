@@ -3,9 +3,9 @@
 import os
 import sys
 
-from utils.config import config
-from tools.pdf_ingestion import pdf_ingestor
-from tools.chromadb_manager import chromadb_manager
+from src.utils.config import config
+from src.tools.pdf_ingestion import pdf_ingestor
+from src.tools.chromadb_manager import chromadb_manager
 
 
 def check_prerequisites() -> bool:

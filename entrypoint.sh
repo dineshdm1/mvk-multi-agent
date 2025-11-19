@@ -54,7 +54,7 @@ fi
 
 # Run initialization script
 echo "🚀 Running initialization..."
-python src/init.py
+python -m src.init
 
 if [ $? -ne 0 ]; then
     echo "❌ Initialization failed"
@@ -70,5 +70,6 @@ echo "Access the application at: http://localhost:${CHAINLIT_PORT:-8000}"
 echo ""
 
 # Start Chainlit
+export PYTHONPATH=/app:$PYTHONPATH
 cd src
 exec chainlit run app.py --host 0.0.0.0 --port ${CHAINLIT_PORT:-8000}

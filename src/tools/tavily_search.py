@@ -2,8 +2,6 @@
 
 from typing import List, Dict, Optional
 from tavily import TavilyClient
-import mvk_sdk as mvk
-from mvk_sdk import Metric
 
 from ..utils.config import config
 
@@ -34,56 +32,35 @@ class TavilySearch:
         Returns:
             List of search results with title, url, content
         """
-        with mvk.create_signal(
-            name="tool.tavily_search",
-            step_type="TOOL",
-            operation="web_search"
-        ):
-            try:
-                # Build search parameters
-                search_params = {
-                    "query": query,
-                    "max_results": max_results,
-                    "search_depth": search_depth,
-                }
+        try:
+            # Build search parameters
+            search_params = {
+                "query": query,
+                "max_results": max_results,
+                "search_depth": search_depth,
+            }
 
-                if include_domains:
-                    search_params["include_domains"] = include_domains
+            if include_domains:
+                search_params["include_domains"] = include_domains
 
-                # Perform search
-                response = self.client.search(**search_params)
+            # Perform search
+            response = self.client.search(**search_params)
 
-                # Extract results
-                results = []
-                for item in response.get("results", []):
-                    results.append({
-                        "title": item.get("title", ""),
-                        "url": item.get("url", ""),
-                        "content": item.get("content", ""),
-                        "score": item.get("score", 0.0)
-                    })
+            # Extract results
+            results = []
+            for item in response.get("results", []):
+                results.append({
+                    "title": item.get("title", ""),
+                    "url": item.get("url", ""),
+                    "content": item.get("content", ""),
+                    "score": item.get("score", 0.0)
+                })
 
-                # Track Tavily search cost
-                mvk.add_metered_usage(
-                    Metric(
-                        name="tavily.search",
-                        value=1,
-                        unit="search",
-                        estimated_cost=config.TOOL_PRICES["tavily_search"],
-                        metadata={
-                            "max_results": max_results,
-                            "search_depth": search_depth,
-                            "results_returned": len(results),
-                            "domains": include_domains if include_domains else "all"
-                        }
-                    )
-                )
+            return results
 
-                return results
-
-            except Exception as e:
-                print(f"❌ Tavily search error: {e}")
-                return []
+        except Exception as e:
+            print(f"❌ Tavily search error: {e}")
+            return []
 
     def search_framework(
         self,

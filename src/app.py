@@ -3,12 +3,13 @@
 import chainlit as cl
 from chainlit.input_widget import TextInput
 import time
+import secrets
 import mvk_sdk as mvk
 
-from utils.config import config
-from utils.session_manager import session_manager
-from agents.orchestrator import chat_orchestrator
-from prompts import (
+from src.utils.config import config
+from src.utils.session_manager import session_manager
+from src.agents.orchestrator import chat_orchestrator
+from src.prompts import (
     WELCOME_MESSAGE,
     AUTH_USERNAME_PROMPT,
     AUTH_PASSWORD_PROMPT,
@@ -27,11 +28,8 @@ AUTH_STATE_AUTHENTICATED = "authenticated"
 @cl.on_chat_start
 async def start():
     """Initialize chat session."""
-    # Validate configuration
-    if not config.is_valid():
-        error_msg = config.get_error_message()
-        await cl.Message(content=error_msg).send()
-        return
+    # Show welcome message
+    await cl.Message(content="# Mavvrik SDK Agent\n\nWelcome! Please authenticate to continue.").send()
 
     # Ask for username
     await cl.Message(content=AUTH_USERNAME_PROMPT).send()
@@ -101,7 +99,8 @@ async def handle_password_input(password: str):
     # Validate password
     if password == config.AUTH_PASSWORD:
         # Authenticate session
-        session_manager.authenticate_session(session_id, password, config.AUTH_PASSWORD)
+        session_manager.authenticate_session(
+            session_id, password, config.AUTH_PASSWORD)
 
         # Update state
         cl.user_session.set("authenticated", True)
@@ -155,7 +154,8 @@ async def handle_query(query: str):
         latency_ms = (time.time() - start_time) * 1000
 
         # Update loading message with result
-        await loading_msg.update(content=result["answer"])
+        loading_msg.content = result["answer"]
+        await loading_msg.update()
 
         # Store conversation in session
         session_manager.add_conversation(
@@ -170,8 +170,10 @@ async def handle_query(query: str):
 
         # Add feedback actions
         actions = [
-            cl.Action(name="feedback_helpful", value="helpful", label="👍 Helpful"),
-            cl.Action(name="feedback_not_helpful", value="not_helpful", label="👎 Not Helpful")
+            cl.Action(name="feedback_helpful",
+                      payload={"value": "helpful"}, label="👍 Helpful"),
+            cl.Action(name="feedback_not_helpful",
+                      payload={"value": "not_helpful"}, label="👎 Not Helpful")
         ]
 
         await cl.Message(
@@ -181,7 +183,8 @@ async def handle_query(query: str):
 
     except Exception as e:
         error_msg = ERROR_GENERAL.format(error=str(e))
-        await loading_msg.update(content=error_msg)
+        loading_msg.content = error_msg
+        await loading_msg.update()
 
 
 @cl.action_callback("feedback_helpful")
@@ -206,7 +209,8 @@ async def on_feedback_not_helpful(action: cl.Action):
     conversation_id = cl.user_session.get("last_conversation_id")
 
     if session_id and conversation_id:
-        session_manager.add_feedback(session_id, conversation_id, "not_helpful")
+        session_manager.add_feedback(
+            session_id, conversation_id, "not_helpful")
 
     await cl.Message(content="✅ Thank you for your feedback! We'll work on improving.").send()
 

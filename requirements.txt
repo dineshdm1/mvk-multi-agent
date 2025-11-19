@@ -3,6 +3,8 @@ chainlit
 langchain
 langchain-community
 langchain-openai
+langchain-core
+langchain-text-splitters
 
 # Vector database
 chromadb
@@ -14,9 +16,6 @@ openai
 # Web search
 tavily-python
 
-# MVK SDK
-mvk-sdk
-
 # Utilities
 python-dotenv
 pydantic
@@ -25,3 +24,6 @@ tiktoken
 # HTTP
 requests
 httpx
+
+
+sdk/mvk_sdk_py-1.2.0-py3-none-any.whl

@@ -2,11 +2,9 @@
 
 import os
 from typing import List
-from langchain.document_loaders import PyPDFLoader
-from langchain.text_splitter import RecursiveCharacterTextSplitter
-from langchain.schema import Document
-import mvk_sdk as mvk
-from mvk_sdk import Metric
+from langchain_community.document_loaders import PyPDFLoader
+from langchain_text_splitters import RecursiveCharacterTextSplitter
+from langchain_core.documents import Document
 
 from ..utils.config import config
 
@@ -50,55 +48,17 @@ class PDFIngestor:
                 f"Please place 'mvk_sdk_documentation.pdf' in the docs/ directory."
             )
 
-        # Stage 1: Load PDF
-        with mvk.create_signal(
-            name="tool.pdf_loader",
-            step_type="TOOL",
-            operation="load"
-        ):
-            print(f"📄 Loading PDF from {self.pdf_path}...")
-            loader = PyPDFLoader(self.pdf_path)
-            documents = loader.load()
-            print(f"✅ Loaded {len(documents)} pages")
+        # Load PDF
+        print(f"📄 Loading PDF from {self.pdf_path}...")
+        loader = PyPDFLoader(self.pdf_path)
+        documents = loader.load()
+        print(f"✅ Loaded {len(documents)} pages")
 
-            # Track PDF loading cost
-            mvk.add_metered_usage(
-                Metric(
-                    name="pdf.pages_loaded",
-                    value=len(documents),
-                    unit="page",
-                    estimated_cost=config.TOOL_PRICES["pdf_ingestion"] * len(documents),
-                    metadata={
-                        "file_path": self.pdf_path,
-                        "pages_loaded": len(documents)
-                    }
-                )
-            )
-
-        # Stage 2: Split into chunks
-        with mvk.create_signal(
-            name="tool.pdf_splitter",
-            step_type="TOOL",
-            operation="split"
-        ):
-            print(f"✂️  Splitting into chunks (size={self.chunk_size}, overlap={self.chunk_overlap})...")
-            chunks = self.text_splitter.split_documents(documents)
-            print(f"✅ Created {len(chunks)} chunks")
-
-            # Track PDF parsing cost
-            mvk.add_metered_usage(
-                Metric(
-                    name="pdf.chunks_created",
-                    value=len(chunks),
-                    unit="chunk",
-                    estimated_cost=config.TOOL_PRICES["pdf_parsing"],
-                    metadata={
-                        "chunk_size": self.chunk_size,
-                        "chunk_overlap": self.chunk_overlap,
-                        "total_chunks": len(chunks)
-                    }
-                )
-            )
+        # Split into chunks
+        print(
+            f"✂️  Splitting into chunks (size={self.chunk_size}, overlap={self.chunk_overlap})...")
+        chunks = self.text_splitter.split_documents(documents)
+        print(f"✅ Created {len(chunks)} chunks")
 
         # Add metadata to chunks
         for i, chunk in enumerate(chunks):

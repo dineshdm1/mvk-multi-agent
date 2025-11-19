@@ -37,48 +37,46 @@ class CodeGenerator:
         Returns:
             Dictionary with code, explanation, cost estimate, and gotchas
         """
-        # Identify this agent
-        with mvk.context(agent_name="code_generator"):
-            try:
-                # Build comprehensive context
-                sdk_ctx = sdk_context or "No specific SDK context provided."
-                framework_ctx = framework_context or "No specific framework context provided."
+        try:
+            # Build comprehensive context
+            sdk_ctx = sdk_context or "No specific SDK context provided."
+            framework_ctx = framework_context or "No specific framework context provided."
 
-                # Stage 1: Code generation
-                with mvk.context(name="stage.generation"):
-                    prompt = CODE_GENERATOR_PROMPT.format(
-                        user_query=user_query,
-                        sdk_context=sdk_ctx,
-                        framework_context=framework_ctx
-                    )
+            # Stage 1: Code generation
+            with mvk.context(name="stage.generation"):
+                prompt = CODE_GENERATOR_PROMPT.format(
+                    user_query=user_query,
+                    sdk_context=sdk_ctx,
+                    framework_context=framework_ctx
+                )
 
-                    # LLM call is auto-tracked by MVK SDK
-                    response = self.llm.invoke([
-                        {"role": "system", "content": "You are an expert code generator for MVK SDK integration."},
-                        {"role": "user", "content": prompt}
-                    ])
+                # LLM call is auto-tracked by MVK SDK
+                response = self.llm.invoke([
+                    {"role": "system", "content": "You are an expert code generator for MVK SDK integration."},
+                    {"role": "user", "content": prompt}
+                ])
 
-                    raw_response = response.content
+                raw_response = response.content
 
-                # Stage 2: Response parsing
-                with mvk.context(name="stage.parsing"):
-                    parsed = self._parse_response(raw_response)
+            # Stage 2: Response parsing
+            with mvk.context(name="stage.parsing"):
+                parsed = self._parse_response(raw_response)
 
-                return {
-                    **parsed,
-                    "success": True
-                }
+            return {
+                **parsed,
+                "success": True
+            }
 
-            except Exception as e:
-                print(f"❌ Code Generator error: {e}")
+        except Exception as e:
+            print(f"❌ Code Generator error: {e}")
 
-                return {
-                    "code": f"# Error generating code: {str(e)}",
-                    "explanation": "",
-                    "cost_estimate": "",
-                    "gotchas": "",
-                    "success": False
-                }
+            return {
+                "code": f"# Error generating code: {str(e)}",
+                "explanation": "",
+                "cost_estimate": "",
+                "gotchas": "",
+                "success": False
+            }
 
     def _parse_response(self, response: str) -> Dict[str, str]:
         """
@@ -110,16 +108,18 @@ class CodeGenerator:
             explanation_marker = "**Explanation:**" if "**Explanation:**" in response else "Explanation:"
             parts = response.split(explanation_marker)
             if len(parts) > 1:
-                explanation_text = parts[1].split("**")[0] if "**" in parts[1] else parts[1]
+                explanation_text = parts[1].split(
+                    "**")[0] if "**" in parts[1] else parts[1]
                 result["explanation"] = explanation_text.strip()
 
         # Extract cost estimate
         if "**Estimated Cost:**" in response or "Estimated Cost:" in response or "**Cost Estimate:**" in response:
             cost_marker = "**Estimated Cost:**" if "**Estimated Cost:**" in response else \
-                         "**Cost Estimate:**" if "**Cost Estimate:**" in response else "Estimated Cost:"
+                "**Cost Estimate:**" if "**Cost Estimate:**" in response else "Estimated Cost:"
             parts = response.split(cost_marker)
             if len(parts) > 1:
-                cost_text = parts[1].split("**")[0] if "**" in parts[1] else parts[1]
+                cost_text = parts[1].split(
+                    "**")[0] if "**" in parts[1] else parts[1]
                 result["cost_estimate"] = cost_text.strip()
 
         # Extract gotchas
@@ -127,7 +127,8 @@ class CodeGenerator:
             gotchas_marker = "**Gotchas:**" if "**Gotchas:**" in response else "Gotchas:"
             parts = response.split(gotchas_marker)
             if len(parts) > 1:
-                gotchas_text = parts[1].split("**")[0] if "**" in parts[1] else parts[1]
+                gotchas_text = parts[1].split(
+                    "**")[0] if "**" in parts[1] else parts[1]
                 result["gotchas"] = gotchas_text.strip()
 
         # If code wasn't extracted, use the whole response

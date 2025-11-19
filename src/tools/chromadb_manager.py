@@ -4,9 +4,7 @@ import os
 from typing import List, Optional
 from langchain_community.vectorstores import Chroma
 from langchain_openai import OpenAIEmbeddings
-from langchain.schema import Document
-import mvk_sdk as mvk
-from mvk_sdk import Metric
+from langchain_core.documents import Document
 
 from ..utils.config import config
 
@@ -37,7 +35,8 @@ class ChromaDBManager:
         if self._vectorstore is None:
             # Try to load existing vector store
             if os.path.exists(os.path.join(self.persist_directory, "chroma.sqlite3")):
-                print(f"📂 Loading existing ChromaDB from {self.persist_directory}...")
+                print(
+                    f"📂 Loading existing ChromaDB from {self.persist_directory}...")
                 self._vectorstore = Chroma(
                     collection_name=self.collection_name,
                     embedding_function=self.embeddings,
@@ -47,7 +46,8 @@ class ChromaDBManager:
                 print(f"✅ Loaded ChromaDB with {count} documents")
             else:
                 # Create empty vector store
-                print(f"🆕 Creating new ChromaDB at {self.persist_directory}...")
+                print(
+                    f"🆕 Creating new ChromaDB at {self.persist_directory}...")
                 self._vectorstore = Chroma(
                     collection_name=self.collection_name,
                     embedding_function=self.embeddings,
@@ -70,7 +70,7 @@ class ChromaDBManager:
 
         print(f"🔄 Indexing {len(documents)} documents into ChromaDB...")
 
-        # Create embeddings and store (auto-tracked by MVK SDK)
+        # Create embeddings and store (auto-tracked by MVK SDK with vectordb wrapper)
         self._vectorstore = Chroma.from_documents(
             documents=documents,
             embedding=self.embeddings,
@@ -78,25 +78,9 @@ class ChromaDBManager:
             persist_directory=self.persist_directory
         )
 
-        # Persist to disk
-        self._vectorstore.persist()
+        # ChromaDB auto-persists in newer versions (>= 0.4.0)
 
         count = self._vectorstore._collection.count()
-
-        # Track ChromaDB indexing cost (custom metric)
-        mvk.add_metered_usage(
-            Metric(
-                name="chromadb.documents_indexed",
-                value=len(documents),
-                unit="document",
-                estimated_cost=config.TOOL_PRICES["chromadb_indexing"] * len(documents),
-                metadata={
-                    "total_documents": count,
-                    "batch_size": len(documents)
-                }
-            )
-        )
-
         print(f"✅ Indexed {count} documents in ChromaDB")
 
     def search(self, query: str, k: int = None) -> List[Document]:
@@ -112,7 +96,7 @@ class ChromaDBManager:
         """
         k = k or config.TOP_K_RESULTS
 
-        # Perform search (auto-tracked by MVK SDK)
+        # Perform search (auto-tracked by MVK SDK with vectordb wrapper)
         results = self.vectorstore.similarity_search(query, k=k)
 
         return results
