@@ -22,6 +22,9 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy source code
 COPY src/ ./src/
 
+# Copy Chainlit configuration
+COPY .chainlit/ ./.chainlit/
+
 # Copy docs directory (will be mounted as volume in production)
 COPY docs/ ./docs/
 

@@ -227,9 +227,18 @@ CHROMA_PERSIST_DIR=./chroma/data
 
 # Chainlit
 CHAINLIT_PORT=8000
+CHAINLIT_SESSION_TIMEOUT=120  # Session timeout in seconds (default: 120)
+CHAINLIT_WEBSOCKET_TIMEOUT=90  # WebSocket timeout in seconds (default: 90)
 
 # Authentication
 AUTH_PASSWORD=mavvrik@123  # Default password
+```
+
+### Performance Tuning
+```bash
+# For queries taking longer than 2 minutes, increase these timeouts:
+CHAINLIT_SESSION_TIMEOUT=180   # 3 minutes
+CHAINLIT_WEBSOCKET_TIMEOUT=150 # 2.5 minutes
 ```
 
 ---
@@ -278,6 +287,25 @@ docker-compose up --build
 **Authentication issues**
 - Default password is `mavvrik@123`
 - Set custom password in `.env` with `AUTH_PASSWORD=your-password`
+
+**Session timeout / Re-authentication prompt during long queries**
+```bash
+# If you see "Please authenticate" after asking complex questions:
+# Increase timeout values in .env file
+
+CHAINLIT_SESSION_TIMEOUT=180      # Increase to 3 minutes
+CHAINLIT_WEBSOCKET_TIMEOUT=150    # Increase to 2.5 minutes
+
+# Then restart:
+docker-compose restart
+```
+
+**Why does this happen?**
+- Complex queries (e.g., LlamaIndex with embeddings) can take 45-60 seconds
+- Default session timeout is 120 seconds (2 minutes)
+- If query processing exceeds timeout, UI disconnects
+- Backend still completes the work (visible in MVK telemetry)
+- Solution: Increase timeout or optimize query complexity
 
 ---
 

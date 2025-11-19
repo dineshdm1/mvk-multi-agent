@@ -1,0 +1,45 @@
+[project]
+# Chainlit server host
+host = "0.0.0.0"
+# Chainlit server port
+port = 8000
+# Whether to enable telemetry (set to false for privacy)
+enable_telemetry = false
+
+[UI]
+# Name of the app and chatbot
+name = "Mavvrik SDK Agent"
+# Show the prompt playground
+show_readme_as_default = false
+# Expand message by default
+default_expand_messages = false
+# Hide the chain of thought details from the user
+hide_cot = false
+# Link to your github or docs
+github = "https://github.com/dineshdm1/mvk-multi-agent"
+
+[features]
+# Process and display HTML in messages
+unsafe_allow_html = false
+# Process and display mathematical expressions
+latex = false
+# Automatically tag threads with the current chat profile
+auto_tag_thread = true
+# Authorize users to upload files with messages
+multi_modal = false
+
+[session]
+# Session timeout in seconds - INCREASED TO 120 SECONDS (2 minutes)
+# This fixes the timeout issue for long-running queries (up to 46+ seconds)
+timeout = 120
+# Maximum number of messages to keep in memory
+max_size_mb = 100
+
+[websocket]
+# WebSocket ping interval in seconds
+ping_interval = 20
+# WebSocket ping timeout in seconds - INCREASED TO 90 SECONDS
+# This prevents disconnection during long operations
+ping_timeout = 90
+# Maximum message size in MB
+max_message_size = 10

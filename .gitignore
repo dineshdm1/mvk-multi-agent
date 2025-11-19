@@ -62,7 +62,7 @@ docs/*.pdf
 htmlcov/
 
 # Chainlit
-.chainlit/
+.chainlit/.files/
 .files/
 
 # Temporary files
